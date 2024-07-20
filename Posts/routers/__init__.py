@@ -1,0 +1,1 @@
+from .posts import router as post_router
