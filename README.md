@@ -17,4 +17,4 @@ Este repositorio contiene el servicio de publicaciones de una red social simple.
 - [Requests](https://pypi.org/project/requests/)
 - [Pydantic](https://docs.pydantic.dev/latest/)
 - [Typing](https://docs.python.org/3/library/typing.html)
-- [PyMongo](https://pymongo.readthedocs.io/en/stable/) -> MongoDB
+- [Peewee](http://docs.peewee-orm.com/en/latest/) -> SQLite

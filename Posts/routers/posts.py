@@ -1,47 +1,95 @@
-from fastapi import APIRouter, Response, status
-from ..config.db import connection
-from ..schemas import postEntity, postsEntity
-from ..models.post import Post
+from fastapi import APIRouter, Response, status, File, UploadFile, HTTPException
+from ..database import database, Post, Like
+from ..schemas import PostResponseModel, PostRequestModel
 
+from typing import List
 
-from bson import ObjectId 
+POST_LIMIT = 50
 
 router = APIRouter(prefix='/posts')
 
-@router.get('')
-def get_posts():
-    return postsEntity(connection.local.post.find())
+@router.get("", response_model=List[PostResponseModel])
+async def get_all_posts(page: int = 1, limit: int = 10):
 
-
-@router.get('/{id}')
-def get_post(id: str):
-    data = connection.local.post.find_one({"_id": ObjectId(id)})
-    return postEntity(data)
-
-
-
-@router.post('')
-def create_post(post: Post):
-    new_post = dict(post)
-
-    id = connection.local.post.insert_one(new_post).inserted_id
+    if page <= 0 or limit <= 0:
+        raise HTTPException(400, 'Params must be greater than zero')
     
-    data = connection.local.post.find_one({"_id": id})
+    if limit > POST_LIMIT:
+        raise HTTPException(400, 'Retreive less posts at the same time')
+
+    posts = Post.select().order_by(Post.created_at.desc()).paginate(page, limit)
     
-    return postEntity(data)
+    return [ post for post in posts]
+    
+
+@router.post('', response_model=PostResponseModel)
+async def create_post(post: PostRequestModel):
+    new_post = Post.create(username=post.username, 
+                           text=post.text, 
+                           imageurl="todo")
+    return new_post
+
+
+@router.get('/{id}', response_model=PostResponseModel)
+async def get_post(id: str):
+    post = Post.select().where(Post.id == id).first()
+    
+    if post is None:
+        raise HTTPException(404, 'Post not found')
+        
+    return post
+
+@router.put('/{id}', response_model=PostResponseModel)
+async def update_post(id: int, post_req: PostRequestModel):
+    post = Post.select().where(Post.id == id).first()
+    
+    if post is None:
+        raise HTTPException(404, 'Post not found')
+    
+    post.text = post_req.text
+    post.imageurl = "modificado"
+    
+    post.save()
+    
+    return post
+     
+@router.delete('/{id}', response_model=PostResponseModel) 
+async def delete_post(id: str):
+    post = Post.select().where(Post.id == id).first()
+    
+    if post is None:
+        raise HTTPException(404, 'Post not found')
+    
+    post.delete_instance()
+    
+    return post
+
+@router.get('/user/{username}', response_model=List[PostResponseModel])
+async def get_posts_of_user(username: str, page: int = 1, limit: int = 10):
+
+    if page <= 0 or limit <= 0:
+        raise HTTPException(400, 'Params must be greater than zero')
+    
+    if limit > POST_LIMIT:
+        raise HTTPException(400, 'Retreive less posts at the same time')
+
+    posts = Post.select().where(Post.username == username).order_by(Post.created_at.desc()).paginate(page, limit)
+    
+    return [ post for post in posts]
 
 
 
+@router.get("/following/all", response_model=List[PostResponseModel])
+async def get_posts_following(page: int = 1, limit: int = 10):
 
-@router.get('/user/{username}')
-def get_posts_of_user(username: str):
-    return f'hello {username}'
+    if page <= 0 or limit <= 0:
+        raise HTTPException(400, 'Params must be greater than zero')
+    
+    if limit > POST_LIMIT:
+        raise HTTPException(400, 'Retreive less posts at the same time')
 
-@router.put('/{id}')
-def update_post(id: int):
-    return f'hello {id}'
+    usernames = ['Manolo', 'Roman', 'Valentina']
 
-@router.delete('/{id}') 
-def delete_post(id: str):
-    connection.local.post.find_one_and_delete({"_id": ObjectId(id)})
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    posts = Post.select().where(Post.username.in_(usernames)).order_by(Post.created_at.desc()).paginate(page, limit)
+    
+    return [post for post in posts]

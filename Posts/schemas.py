@@ -1,9 +1,13 @@
-def postEntity(item) -> dict:
-    return {
-        'username': item['username'],
-        'text': item['text'],
-        'imageurl': item['imageurl'],
-    }
+from typing import Any
+from pydantic import BaseModel
+from datetime import datetime
+
+class PostResponseModel(BaseModel):
+    username: str
+    text: str
+    imageurl: str
+    created_at: datetime
     
-def postsEntity(entity) -> list:
-    return [postEntity(item=item) for item in entity]
+class PostRequestModel(BaseModel):
+    username: str
+    text: str
