@@ -10,8 +10,6 @@ class PostResponseModel(BaseModel):
     created_at: datetime
     
 class PostRequestModel(BaseModel):
-    
-    username: str
     text: str
 
 
